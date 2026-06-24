@@ -283,7 +283,7 @@ let editing = null;
 /* AZURE LOAD */
 async function loadFromAzure(){
   try {
-    const url = `https://${AZURE.account}.table.core.windows.net/${AZURE.table}?${AZURE.sas}`;
+   const url = `https://${AZURE.account}.table.core.windows.net/${AZURE.table}?${AZURE.sas.replace(/^\?/, '')}`;
 
     const res = await fetch(url, {
       headers: {

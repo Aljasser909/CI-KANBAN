@@ -1,8 +1,6 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<html lang="ar" dir="rtl"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>CI KANBAN</title>
 <style>
 :root{
@@ -150,29 +148,94 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--
 
   <!-- BOARD -->
   <div class="board-section">
-    <div class="board" id="board"></div>
+    <div class="board" id="board"><div class="col" id="col-backlog">
+      <div class="col-head">
+        <div class="col-bar" style="background:#64748b"></div>
+        <span class="col-lbl">قائمة الانتظار</span>
+        <span class="col-badge" id="badge-backlog">0</span>
+      </div>
+      <div class="col-body" id="body-backlog"><div class="empty-hint">لا توجد مهام</div></div>
+      <button class="col-add" onclick="openModal('backlog')">＋ إضافة</button></div><div class="col" id="col-todo">
+      <div class="col-head">
+        <div class="col-bar" style="background:#f59e0b"></div>
+        <span class="col-lbl">للتنفيذ</span>
+        <span class="col-badge" id="badge-todo">0</span>
+      </div>
+      <div class="col-body" id="body-todo"><div class="empty-hint">لا توجد مهام</div></div>
+      <button class="col-add" onclick="openModal('todo')">＋ إضافة</button></div><div class="col" id="col-inprog">
+      <div class="col-head">
+        <div class="col-bar" style="background:#3b82f6"></div>
+        <span class="col-lbl">قيد التنفيذ</span>
+        <span class="col-badge" id="badge-inprog">0</span>
+      </div>
+      <div class="col-body" id="body-inprog"><div class="empty-hint">لا توجد مهام</div></div>
+      <button class="col-add" onclick="openModal('inprog')">＋ إضافة</button></div><div class="col" id="col-review">
+      <div class="col-head">
+        <div class="col-bar" style="background:#a855f7"></div>
+        <span class="col-lbl">قيد المراجعة</span>
+        <span class="col-badge" id="badge-review">0</span>
+      </div>
+      <div class="col-body" id="body-review"><div class="empty-hint">لا توجد مهام</div></div>
+      <button class="col-add" onclick="openModal('review')">＋ إضافة</button></div><div class="col" id="col-done">
+      <div class="col-head">
+        <div class="col-bar" style="background:#22c55e"></div>
+        <span class="col-lbl">مكتمل</span>
+        <span class="col-badge" id="badge-done">1</span>
+      </div>
+      <div class="col-body" id="body-done"><div class="card" data-id="1" draggable="true">
+    <div class="card-top">
+      <div class="card-title">scasc</div>
+      <button class="card-menu" onclick="openCtx(event,1)">⋯</button>
+    </div>
+    <div class="card-desc">sacavavavav</div>
+    
+    <div class="card-foot">
+      <span class="pchip med">متوسطة</span>
+      
+    </div></div></div>
+      <button class="col-add" onclick="openModal('done')">＋ إضافة</button></div></div>
   </div>
 
   <!-- STATS -->
   <div class="stats-section" id="stats-section">
     <div class="stats-title">الإحصائيات</div>
-    <div class="stats-grid" id="stats-grid"></div>
+    <div class="stats-grid" id="stats-grid"><div class="stat-card"><div class="stat-card-dot" style="background:#64748b"></div>
+      <div class="stat-card-val">0</div>
+      <div class="stat-card-lbl">قائمة الانتظار</div>
+      <div class="stat-card-pct" style="color:#64748b">0%</div></div><div class="stat-card"><div class="stat-card-dot" style="background:#f59e0b"></div>
+      <div class="stat-card-val">0</div>
+      <div class="stat-card-lbl">للتنفيذ</div>
+      <div class="stat-card-pct" style="color:#f59e0b">0%</div></div><div class="stat-card"><div class="stat-card-dot" style="background:#3b82f6"></div>
+      <div class="stat-card-val">0</div>
+      <div class="stat-card-lbl">قيد التنفيذ</div>
+      <div class="stat-card-pct" style="color:#3b82f6">0%</div></div><div class="stat-card"><div class="stat-card-dot" style="background:#a855f7"></div>
+      <div class="stat-card-val">0</div>
+      <div class="stat-card-lbl">قيد المراجعة</div>
+      <div class="stat-card-pct" style="color:#a855f7">0%</div></div><div class="stat-card"><div class="stat-card-dot" style="background:#22c55e"></div>
+      <div class="stat-card-val">1</div>
+      <div class="stat-card-lbl">مكتمل</div>
+      <div class="stat-card-pct" style="color:#22c55e">100%</div></div></div>
     <div class="chart-row">
       <div class="donut-box">
         <div class="donut-wrap">
-          <svg id="donut-svg" width="150" height="150" viewBox="0 0 150 150"></svg>
+          <svg id="donut-svg" width="150" height="150" viewBox="0 0 150 150"><circle cx="75" cy="75" r="58" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="22"></circle><circle cx="75" cy="75" r="58" fill="none" stroke="#22c55e" stroke-width="22" stroke-dasharray="364.424747816416 364.424747816416" stroke-dashoffset="364.424747816416" transform="rotate(-90 75 75)"></circle></svg>
           <div class="donut-center">
-            <div class="donut-val" id="d-total">0</div>
+            <div class="donut-val" id="d-total">1</div>
             <div class="donut-lbl">مهمة</div>
           </div>
         </div>
-        <div class="legend" id="legend"></div>
+        <div class="legend" id="legend"><div class="leg-row"><div class="leg-l"><div class="leg-dot" style="background:#64748b"></div><span class="leg-name">قائمة الانتظار</span></div>
+      <div class="leg-r"><span class="leg-n">0</span><span class="leg-pct">0%</span></div></div><div class="leg-row"><div class="leg-l"><div class="leg-dot" style="background:#f59e0b"></div><span class="leg-name">للتنفيذ</span></div>
+      <div class="leg-r"><span class="leg-n">0</span><span class="leg-pct">0%</span></div></div><div class="leg-row"><div class="leg-l"><div class="leg-dot" style="background:#3b82f6"></div><span class="leg-name">قيد التنفيذ</span></div>
+      <div class="leg-r"><span class="leg-n">0</span><span class="leg-pct">0%</span></div></div><div class="leg-row"><div class="leg-l"><div class="leg-dot" style="background:#a855f7"></div><span class="leg-name">قيد المراجعة</span></div>
+      <div class="leg-r"><span class="leg-n">0</span><span class="leg-pct">0%</span></div></div><div class="leg-row"><div class="leg-l"><div class="leg-dot" style="background:#22c55e"></div><span class="leg-name">مكتمل</span></div>
+      <div class="leg-r"><span class="leg-n">1</span><span class="leg-pct">100%</span></div></div></div>
       </div>
       <div class="completion-box">
         <h3>نسبة الإنجاز</h3>
-        <div class="big-pct" id="big-pct">0%</div>
-        <div class="track"><div class="fill" id="pct-fill" style="width:0%"></div></div>
-        <div class="completion-sub" id="completion-sub">0 من 0 مهمة مكتملة</div>
+        <div class="big-pct" id="big-pct">100%</div>
+        <div class="track"><div class="fill" id="pct-fill" style="width: 100%;"></div></div>
+        <div class="completion-sub" id="completion-sub">1 من 1 مهمة مكتملة</div>
       </div>
     </div>
   </div>
@@ -189,7 +252,7 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--
     </div>
     <div class="field">
       <label>العنوان *</label>
-      <input id="f-title" type="text" placeholder="اكتب عنوان المهمة…"/>
+      <input id="f-title" type="text" placeholder="اكتب عنوان المهمة…">
     </div>
     <div class="field">
       <label>الوصف</label>
@@ -210,7 +273,7 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--
         <label>الأولوية</label>
         <select id="f-priority">
           <option value="high">🔴 عالية</option>
-          <option value="med" selected>🟡 متوسطة</option>
+          <option value="med" selected="">🟡 متوسطة</option>
           <option value="low">🟢 منخفضة</option>
         </select>
       </div>
@@ -218,11 +281,11 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--
     <div class="frow">
       <div class="field">
         <label>المسؤول</label>
-        <input id="f-assignee" type="text" placeholder="اسم المسؤول…"/>
+        <input id="f-assignee" type="text" placeholder="اسم المسؤول…">
       </div>
       <div class="field">
         <label>تاريخ الاستحقاق</label>
-        <input id="f-date" type="date"/>
+        <input id="f-date" type="date">
       </div>
     </div>
     <div class="modal-actions">
@@ -239,221 +302,99 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--
   <div class="ctx-item danger" onclick="ctxDelete()">🗑 حذف</div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast">تمت الإضافة</div>
 
-<!--KBDATA_START--><!--KBDATA_END-->
+<!--KBDATA_START--><script id="kbdata" type="application/json">{"cards":[{"id":1,"title":"scasc","desc":"sacavavavav","colId":"done","priority":"med","assignee":"","date":""}],"nextId":2}</script><!--KBDATA_END-->
 
 <script>
-<script>
-/* =========================
-   AZURE CONFIG
-   ========================= */
-
-const AZURE = {
-  account: "kanbanstore123",
-  table: "kanbanTasks",
-  sas: "sv=2026-02-06&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2027-06-24T18:23:19Z&st=2026-06-24T10:08:19Z&spr=https&sig=ILmk9veYJDpMB%2BUOxgVEV1yXriy48fj03jY1ndQdUCc%3D"
-};
-
-function azureUrl(){
-  return `https://${AZURE.account}.table.core.windows.net/${AZURE.table}?${AZURE.sas}`;
-}
-
-/* =========================
-   STATE
-   ========================= */
-
 const COLS=[
   {id:'backlog',label:'قائمة الانتظار',color:'#64748b'},
-  {id:'todo',label:'للتنفيذ',color:'#f59e0b'},
-  {id:'inprog',label:'قيد التنفيذ',color:'#3b82f6'},
-  {id:'review',label:'قيد المراجعة',color:'#a855f7'},
-  {id:'done',label:'مكتمل',color:'#22c55e'},
+  {id:'todo',   label:'للتنفيذ',        color:'#f59e0b'},
+  {id:'inprog', label:'قيد التنفيذ',    color:'#3b82f6'},
+  {id:'review', label:'قيد المراجعة',   color:'#a855f7'},
+  {id:'done',   label:'مكتمل',           color:'#22c55e'},
 ];
-
 const PRI_AR={high:'عالية',med:'متوسطة',low:'منخفضة'};
 const MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
-let cards=[];
-let nextId=1;
-let dragging=null;
-let activeCtx=null;
-let editing=null;
-
 /* =========================
-   AZURE SAVE / DELETE
-   ========================= */
+   LIVE HELPERS (STATS + DATES)
+========================= */
 
-async function saveCardToAzure(card){
-  try{
-    await fetch(azureUrl(),{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Accept":"application/json;odata=nometadata",
-        "Prefer":"return-no-content"
-      },
-      body:JSON.stringify({
-        PartitionKey:"kanban",
-        RowKey:String(card.id),
-        data:JSON.stringify(card)
-      })
-    });
-  }catch(e){
-    console.log("save error",e);
-  }
+function getTotal() {
+  return cards.length;
 }
 
-async function deleteCardFromAzure(id){
-  try{
-    await fetch(
-      `https://${AZURE.account}.table.core.windows.net/${AZURE.table}(PartitionKey='kanban',RowKey='${id}')?${AZURE.sas}`,
-      {
-        method:"DELETE",
-        headers:{
-          "Accept":"application/json;odata=nometadata",
-          "If-Match":"*"
-        }
-      }
-    );
-  }catch(e){
-    console.log("delete error",e);
-  }
+function getByCol(colId) {
+  return cards.filter(c => c.colId === colId);
 }
 
-/* =========================
-   LOAD AZURE
-   ========================= */
+function updateStatsLive() {
+  const total = getTotal();
 
-async function loadFromAzure(){
-  try{
-    const res = await fetch(azureUrl(),{
-      headers:{
-        "Accept":"application/json;odata=nometadata"
-      }
-    });
+  COLS.forEach(col => {
+    const count = getByCol(col.id).length;
+    const pct = total ? Math.round((count / total) * 100) : 0;
 
-    const data = await res.json();
+    const badge = document.getElementById('badge-' + col.id);
+    if (badge) badge.textContent = count;
 
-    cards = (data.value||[])
-      .map(x=>{
-        try{return JSON.parse(x.data);}catch{return null;}
-      })
-      .filter(Boolean);
+    const statCards = document.querySelectorAll('.stat-card');
+    const idx = COLS.findIndex(c => c.id === col.id);
 
-    render();
-  }catch(e){
-    console.log("load error",e);
-    render();
-  }
-}
-
-/* =========================
-   BOARD
-   ========================= */
-
-function buildBoard(){
-  const board=document.getElementById("board");
-  board.innerHTML="";
-
-  COLS.forEach(col=>{
-    const d=document.createElement("div");
-    d.className="col";
-    d.id="col-"+col.id;
-
-    d.innerHTML=`
-      <div class="col-head">
-        <div class="col-bar" style="background:${col.color}"></div>
-        <span class="col-lbl">${col.label}</span>
-        <span class="col-badge" id="badge-${col.id}">0</span>
-      </div>
-      <div class="col-body" id="body-${col.id}"></div>
-      <button class="col-add" onclick="openModal('${col.id}')">＋ إضافة</button>
-    `;
-
-    const body=d.querySelector(".col-body");
-
-    body.addEventListener("dragover",e=>{
-      e.preventDefault();
-      d.classList.add("drag-over");
-    });
-
-    body.addEventListener("dragleave",()=>d.classList.remove("drag-over"));
-
-    body.addEventListener("drop",()=>{
-      d.classList.remove("drag-over");
-      if(dragging){
-        dragging.colId=col.id;
-        saveCardToAzure(dragging); // LIVE UPDATE
-        render();
-      }
-    });
-
-    board.appendChild(d);
-  });
-}
-
-/* =========================
-   RENDER
-   ========================= */
-
-function render(){
-  COLS.forEach(col=>{
-    const body=document.getElementById("body-"+col.id);
-    const badge=document.getElementById("badge-"+col.id);
-
-    const cc=cards.filter(c=>c.colId===col.id);
-
-    body.innerHTML="";
-
-    if(!cc.length){
-      body.innerHTML='<div class="empty-hint">لا توجد مهام</div>';
-    }else{
-      cc.forEach(c=>body.appendChild(mkCard(c)));
+    if (statCards[idx]) {
+      statCards[idx].querySelector('.stat-card-val').textContent = count;
+      statCards[idx].querySelector('.stat-card-pct').textContent = pct + '%';
+      statCards[idx].querySelector('.stat-card-pct').style.color = col.color;
     }
-
-    badge.textContent=cc.length;
   });
 
-  updateStats?.();
+  updateCompletionLive();
+}
+
+function updateCompletionLive() {
+  const total = getTotal();
+  const done = getByCol('done').length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  const big = document.getElementById('big-pct');
+  const fill = document.getElementById('pct-fill');
+  const sub  = document.getElementById('completion-sub');
+
+  if (big) big.textContent = pct + '%';
+  if (fill) fill.style.width = pct + '%';
+  if (sub) sub.textContent = `${done} من ${total} مهمة مكتملة`;
 }
 
 /* =========================
-   ADD / EDIT (YOU MUST HAVE THESE EXISTING)
-   ========================= */
+   DATE UTIL (LIVE + LATE CHECK)
+========================= */
 
-function saveCard(data){
-  if(editing){
-    Object.assign(editing,data);
-    saveCardToAzure(editing);
-  }else{
-    const newCard={id:nextId++,...data};
-    cards.push(newCard);
-    saveCardToAzure(newCard);
-  }
+function formatDate(dateStr) {
+  if (!dateStr) return '';
 
-  render();
+  const d = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const isLate = d < today;
+
+  return {
+    text: `${isLate ? '⚠ ' : ''}${d.getDate()} ${MONTHS[d.getMonth()]}`,
+    late: isLate
+  };
 }
 
 /* =========================
-   DELETE
-   ========================= */
+   PATCH RENDER (KEEP DESIGN SAME)
+   فقط نضيف تحديث Live
+========================= */
 
-function ctxDelete(){
-  if(!activeCtx) return;
-
-  cards=cards.filter(c=>c.id!==activeCtx);
-  deleteCardFromAzure(activeCtx);
-
-  render();
-}
-
-/* =========================
-   INIT
-   ========================= */
-
-buildBoard();
-loadFromAzure();
+const _render = render;
+render = function () {
+  _render();
+  updateStatsLive();
+};
 </script>
-</body>
-</html>
+
+</body></html>

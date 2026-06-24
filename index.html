@@ -244,6 +244,9 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--
 <!--KBDATA_START--><!--KBDATA_END-->
 
 <script>
+  let cards = [];
+let nextId = 1;
+let dragging = null;
   const AZURE = {
   account: "kanbanstore123",
   table: "kanbanTasks",

@@ -244,11 +244,12 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--
 <!--KBDATA_START--><!--KBDATA_END-->
 
 <script>
-  const AZURE = {
+const AZURE = {
   account: "kanbanstore123",
   table: "kanbanTasks",
-  sas: "?sv=2026-02-06&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2027-06-24T18:23:19Z&st=2026-06-24T10:08:19Z&spr=https&sig=ILmk9veYJDpMB%2BUOxgVEV1yXriy48fj03jY1ndQdUCc%3D"
+  sas: "sv=2026-02-06&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2027-06-24T18:23:19Z&st=2026-06-24T10:08:19Z&spr=https&sig=ILmk9veYJDpMB%2BUOxgVEV1yXriy48fj03jY1ndQdUCc%3D"
 };
+
 const COLS=[
   {id:'backlog',label:'قائمة الانتظار',color:'#64748b'},
   {id:'todo',   label:'للتنفيذ',        color:'#f59e0b'},
@@ -256,21 +257,64 @@ const COLS=[
   {id:'review', label:'قيد المراجعة',   color:'#a855f7'},
   {id:'done',   label:'مكتمل',           color:'#22c55e'},
 ];
+
 const PRI_AR={high:'عالية',med:'متوسطة',low:'منخفضة'};
 const MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
-let cards=[], nextId=1;
-let dragging=null, activeCtx=null, editing=null;
+/* IMPORTANT: single source of truth */
+let cards = [];
+let nextId = 1;
+let dragging = null;
+let activeCtx = null;
+let editing = null;
+
+/* LOAD LOCAL */
+(function(){
+  const el = document.getElementById('kbdata');
+  if(el){
+    try{
+      const d = JSON.parse(el.textContent);
+      cards = d.cards || [];
+      nextId = d.nextId || 1;
+    }catch(e){}
+  }
+})();
+
+/* AZURE LOAD */
+async function loadFromAzure(){
+  try {
+    const url = `https://${AZURE.account}.table.core.windows.net/${AZURE.table}?${AZURE.sas}`;
+
+    const res = await fetch(url, {
+      headers: {
+        "Accept": "application/json;odata=nometadata"
+      }
+    });
+
+    const data = await res.json();
+
+    cards = (data.value || []).map(x => {
+      try { return JSON.parse(x.data); }
+      catch(e) { return null; }
+    }).filter(Boolean);
+
+    render();
+  } catch (err) {
+    console.log("Azure load failed:", err);
+    render(); // still show UI
+  }
+}
 
 /* SAVE FILE */
 function saveToFile(){
   const snapshot = JSON.stringify({cards, nextId});
   let html = document.documentElement.outerHTML;
-  // Replace between the two stable markers
+
   html = html.replace(
     /<!--KBDATA_START-->[\s\S]*?<!--KBDATA_END-->/,
-    '<!--KBDATA_START--><script id="kbdata" type="application/json">' + snapshot + '<\/script><!--KBDATA_END-->'
+    `<!--KBDATA_START--><script id="kbdata" type="application/json">${snapshot}<\\/script><!--KBDATA_END-->`
   );
+
   const blob = new Blob([html], {type:'text/html;charset=utf-8'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -282,19 +326,16 @@ function saveToFile(){
   toast('✅ تم حفظ الملف');
 }
 
-/* LOAD saved data if present */
-(function(){
-  const el = document.getElementById('kbdata');
-  if(el){ try{ const d=JSON.parse(el.textContent); cards=d.cards||[]; nextId=d.nextId||1; }catch(e){} }
-})();
-
 /* BUILD BOARD */
 function buildBoard(){
   const board=document.getElementById('board');
   board.innerHTML='';
+
   COLS.forEach(col=>{
     const d=document.createElement('div');
-    d.className='col';d.id='col-'+col.id;
+    d.className='col';
+    d.id='col-'+col.id;
+
     d.innerHTML=`
       <div class="col-head">
         <div class="col-bar" style="background:${col.color}"></div>
@@ -302,14 +343,26 @@ function buildBoard(){
         <span class="col-badge" id="badge-${col.id}">0</span>
       </div>
       <div class="col-body" id="body-${col.id}"></div>
-      <button class="col-add" onclick="openModal('${col.id}')">＋ إضافة</button>`;
+      <button class="col-add" onclick="openModal('${col.id}')">＋ إضافة</button>
+    `;
+
     const body=d.querySelector('.col-body');
-    body.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('drag-over')});
+
+    body.addEventListener('dragover',e=>{
+      e.preventDefault();
+      d.classList.add('drag-over');
+    });
+
     body.addEventListener('dragleave',()=>d.classList.remove('drag-over'));
+
     body.addEventListener('drop',()=>{
       d.classList.remove('drag-over');
-      if(dragging){dragging.colId=col.id;render();}
+      if(dragging){
+        dragging.colId = col.id;
+        render();
+      }
     });
+
     board.appendChild(d);
   });
 }
@@ -319,148 +372,26 @@ function render(){
   COLS.forEach(col=>{
     const body=document.getElementById('body-'+col.id);
     const badge=document.getElementById('badge-'+col.id);
-    const cc=cards.filter(c=>c.colId===col.id);
+
+    const cc = cards.filter(c=>c.colId===col.id);
+
     body.innerHTML='';
-    if(!cc.length) body.innerHTML='<div class="empty-hint">لا توجد مهام</div>';
-    else cc.forEach(c=>body.appendChild(mkCard(c)));
-    badge.textContent=cc.length;
+
+    if(!cc.length){
+      body.innerHTML='<div class="empty-hint">لا توجد مهام</div>';
+    } else {
+      cc.forEach(c=>body.appendChild(mkCard(c)));
+    }
+
+    badge.textContent = cc.length;
   });
+
   updateStats();
 }
 
-function mkCard(c){
-  const el=document.createElement('div');
-  el.className='card';el.dataset.id=c.id;el.draggable=true;
-  const today=new Date();today.setHours(0,0,0,0);
-  let dateHtml='';
-  if(c.date){
-    const d=new Date(c.date+'T00:00:00');
-    const late=d<today;
-    dateHtml=`<span class="cdate${late?' late':''}">${late?'⚠ ':''}${d.getDate()} ${MONTHS[d.getMonth()]}</span>`;
-  }
-  el.innerHTML=`
-    <div class="card-top">
-      <div class="card-title">${esc(c.title)}</div>
-      <button class="card-menu" onclick="openCtx(event,${c.id})">⋯</button>
-    </div>
-    ${c.desc?`<div class="card-desc">${esc(c.desc)}</div>`:''}
-    ${c.assignee?`<div class="assignee-chip">${esc(c.assignee)}</div>`:''}
-    <div class="card-foot">
-      <span class="pchip ${c.priority}">${PRI_AR[c.priority]}</span>
-      ${dateHtml}
-    </div>`;
-  el.addEventListener('dragstart',()=>{dragging=c;requestAnimationFrame(()=>el.classList.add('dragging'))});
-  el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragging=null});
-  return el;
-}
-
-/* STATS + CHART */
-function updateStats(){
-  const total=cards.length;
-  const grid=document.getElementById('stats-grid');
-  grid.innerHTML='';
-  COLS.forEach(col=>{
-    const n=cards.filter(c=>c.colId===col.id).length;
-    const pct=total?Math.round(n/total*100):0;
-    const cell=document.createElement('div');
-    cell.className='stat-card';
-    cell.innerHTML=`<div class="stat-card-dot" style="background:${col.color}"></div>
-      <div class="stat-card-val">${n}</div>
-      <div class="stat-card-lbl">${col.label}</div>
-      <div class="stat-card-pct" style="color:${col.color}">${pct}%</div>`;
-    grid.appendChild(cell);
-  });
-
-  /* donut */
-  const svg=document.getElementById('donut-svg');
-  const legend=document.getElementById('legend');
-  svg.innerHTML='';legend.innerHTML='';
-  document.getElementById('d-total').textContent=total;
-  const cx=75,cy=75,R=58,C=2*Math.PI*R;
-  const bgC=document.createElementNS('http://www.w3.org/2000/svg','circle');
-  bgC.setAttribute('cx',cx);bgC.setAttribute('cy',cy);bgC.setAttribute('r',R);
-  bgC.setAttribute('fill','none');bgC.setAttribute('stroke','rgba(255,255,255,.06)');bgC.setAttribute('stroke-width','22');
-  svg.appendChild(bgC);
-  let offset=0;
-  COLS.forEach(col=>{
-    const n=cards.filter(c=>c.colId===col.id).length;
-    const pct=total?n/total:0;
-    if(pct>0){
-      const arc=document.createElementNS('http://www.w3.org/2000/svg','circle');
-      arc.setAttribute('cx',cx);arc.setAttribute('cy',cy);arc.setAttribute('r',R);
-      arc.setAttribute('fill','none');arc.setAttribute('stroke',col.color);arc.setAttribute('stroke-width','22');
-      arc.setAttribute('stroke-dasharray',`${pct*C} ${C}`);
-      arc.setAttribute('stroke-dashoffset',C-offset);
-      arc.setAttribute('transform',`rotate(-90 ${cx} ${cy})`);
-      svg.appendChild(arc);
-      offset+=pct*C;
-    }
-    const row=document.createElement('div');
-    row.className='leg-row';
-    row.innerHTML=`<div class="leg-l"><div class="leg-dot" style="background:${col.color}"></div><span class="leg-name">${col.label}</span></div>
-      <div class="leg-r"><span class="leg-n">${n}</span><span class="leg-pct">${total?Math.round(n/total*100):0}%</span></div>`;
-    legend.appendChild(row);
-  });
-
-  /* completion */
-  const done=cards.filter(c=>c.colId==='done').length;
-  const dp=total?Math.round(done/total*100):0;
-  document.getElementById('big-pct').textContent=dp+'%';
-  document.getElementById('pct-fill').style.width=dp+'%';
-  document.getElementById('completion-sub').textContent=`${done} من ${total} مهمة مكتملة`;
-}
-
-/* MODAL */
-function openModal(col,cid){
-  editing=cid!=null?cards.find(c=>c.id===cid):null;
-  document.getElementById('modal-ttl').textContent=editing?'تعديل المهمة':'مهمة جديدة';
-  document.getElementById('f-title').value   =editing?.title   ??'';
-  document.getElementById('f-desc').value    =editing?.desc    ??'';
-  document.getElementById('f-col').value     =editing?.colId   ??(col||'backlog');
-  document.getElementById('f-priority').value =editing?.priority??'med';
-  document.getElementById('f-assignee').value =editing?.assignee??'';
-  document.getElementById('f-date').value     =editing?.date    ??'';
-  document.getElementById('overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('f-title').focus(),80);
-}
-function closeModal(){document.getElementById('overlay').classList.remove('open');editing=null;}
-function saveCard(){
-  const title=document.getElementById('f-title').value.trim();
-  if(!title){document.getElementById('f-title').focus();return;}
-  const data={title,desc:document.getElementById('f-desc').value.trim(),colId:document.getElementById('f-col').value,priority:document.getElementById('f-priority').value,assignee:document.getElementById('f-assignee').value.trim(),date:document.getElementById('f-date').value};
-  if(editing){Object.assign(editing,data);toast('تم التعديل');}
-  else{cards.push({id:nextId++,...data});toast('تمت الإضافة');}
-  render();closeModal();
-}
-document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal()});
-document.getElementById('f-title').addEventListener('keydown',e=>{if(e.key==='Enter')saveCard()});
-
-/* CTX */
-function openCtx(e,cid){
-  e.stopPropagation();activeCtx=cid;
-  const m=document.getElementById('ctx');
-  m.classList.add('open');
-  m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';
-  requestAnimationFrame(()=>{
-    if(e.clientX+m.offsetWidth>window.innerWidth)m.style.left=(e.clientX-m.offsetWidth)+'px';
-    if(e.clientY+m.offsetHeight>window.innerHeight)m.style.top=(e.clientY-m.offsetHeight)+'px';
-  });
-}
-function closeCtx(){document.getElementById('ctx').classList.remove('open');}
-document.addEventListener('click',closeCtx);
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCtx();}});
-function ctxEdit(){closeCtx();openModal(null,activeCtx);}
-function ctxDelete(){closeCtx();cards=cards.filter(c=>c.id!==activeCtx);render();toast('تم الحذف');}
-
-/* TOAST */
-function toast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('show');
-  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200);
-}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
-buildBoard();render();
+/* INIT ORDER FIX */
+buildBoard();
+loadFromAzure();
 </script>
 </body>
 </html>

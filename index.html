@@ -244,97 +244,122 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--
 <!--KBDATA_START--><!--KBDATA_END-->
 
 <script>
+<script>
+/* =========================
+   AZURE CONFIG
+   ========================= */
+
 const AZURE = {
   account: "kanbanstore123",
   table: "kanbanTasks",
   sas: "sv=2026-02-06&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2027-06-24T18:23:19Z&st=2026-06-24T10:08:19Z&spr=https&sig=ILmk9veYJDpMB%2BUOxgVEV1yXriy48fj03jY1ndQdUCc%3D"
 };
 
+function azureUrl(){
+  return `https://${AZURE.account}.table.core.windows.net/${AZURE.table}?${AZURE.sas}`;
+}
+
+/* =========================
+   STATE
+   ========================= */
+
 const COLS=[
   {id:'backlog',label:'قائمة الانتظار',color:'#64748b'},
-  {id:'todo',   label:'للتنفيذ',        color:'#f59e0b'},
-  {id:'inprog', label:'قيد التنفيذ',    color:'#3b82f6'},
-  {id:'review', label:'قيد المراجعة',   color:'#a855f7'},
-  {id:'done',   label:'مكتمل',           color:'#22c55e'},
+  {id:'todo',label:'للتنفيذ',color:'#f59e0b'},
+  {id:'inprog',label:'قيد التنفيذ',color:'#3b82f6'},
+  {id:'review',label:'قيد المراجعة',color:'#a855f7'},
+  {id:'done',label:'مكتمل',color:'#22c55e'},
 ];
 
 const PRI_AR={high:'عالية',med:'متوسطة',low:'منخفضة'};
 const MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
-/* IMPORTANT: single source of truth */
-let cards = [];
-let nextId = 1;
-let dragging = null;
-let activeCtx = null;
-let editing = null;
+let cards=[];
+let nextId=1;
+let dragging=null;
+let activeCtx=null;
+let editing=null;
 
-/* LOAD LOCAL */
-(function(){
-  const el = document.getElementById('kbdata');
-  if(el){
-    try{
-      const d = JSON.parse(el.textContent);
-      cards = d.cards || [];
-      nextId = d.nextId || 1;
-    }catch(e){}
+/* =========================
+   AZURE SAVE / DELETE
+   ========================= */
+
+async function saveCardToAzure(card){
+  try{
+    await fetch(azureUrl(),{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Accept":"application/json;odata=nometadata",
+        "Prefer":"return-no-content"
+      },
+      body:JSON.stringify({
+        PartitionKey:"kanban",
+        RowKey:String(card.id),
+        data:JSON.stringify(card)
+      })
+    });
+  }catch(e){
+    console.log("save error",e);
   }
-})();
+}
 
-/* AZURE LOAD */
+async function deleteCardFromAzure(id){
+  try{
+    await fetch(
+      `https://${AZURE.account}.table.core.windows.net/${AZURE.table}(PartitionKey='kanban',RowKey='${id}')?${AZURE.sas}`,
+      {
+        method:"DELETE",
+        headers:{
+          "Accept":"application/json;odata=nometadata",
+          "If-Match":"*"
+        }
+      }
+    );
+  }catch(e){
+    console.log("delete error",e);
+  }
+}
+
+/* =========================
+   LOAD AZURE
+   ========================= */
+
 async function loadFromAzure(){
-  try {
-   const url = `https://${AZURE.account}.table.core.windows.net/${AZURE.table}?${AZURE.sas.replace(/^\?/, '')}`;
-
-    const res = await fetch(url, {
-      headers: {
-        "Accept": "application/json;odata=nometadata"
+  try{
+    const res = await fetch(azureUrl(),{
+      headers:{
+        "Accept":"application/json;odata=nometadata"
       }
     });
 
     const data = await res.json();
 
-    cards = (data.value || []).map(x => {
-      try { return JSON.parse(x.data); }
-      catch(e) { return null; }
-    }).filter(Boolean);
+    cards = (data.value||[])
+      .map(x=>{
+        try{return JSON.parse(x.data);}catch{return null;}
+      })
+      .filter(Boolean);
 
     render();
-  } catch (err) {
-    console.log("Azure load failed:", err);
-    render(); // still show UI
+  }catch(e){
+    console.log("load error",e);
+    render();
   }
 }
 
-/* SAVE FILE */
-function saveToFile(){
-  const snapshot = JSON.stringify({cards, nextId});
-  let html = document.documentElement.outerHTML;
+/* =========================
+   BOARD
+   ========================= */
 
-  html = html.replace(
-    /<!--KBDATA_START-->[\s\S]*?<!--KBDATA_END-->/,
-    `<!--KBDATA_START--><script id="kbdata" type="application/json">${snapshot}<\\/script><!--KBDATA_END-->`
-  );
-
-  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'kanban.html';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(a.href);
-  toast('✅ تم حفظ الملف');
-}
-
-/* BUILD BOARD */
 function buildBoard(){
-  const board=document.getElementById('board');
-  board.innerHTML='';
+  const board=document.getElementById("board");
+  board.innerHTML="";
 
   COLS.forEach(col=>{
-    const d=document.createElement('div');
-    d.className='col';
-    d.id='col-'+col.id;
+    const d=document.createElement("div");
+    d.className="col";
+    d.id="col-"+col.id;
 
     d.innerHTML=`
       <div class="col-head">
@@ -346,19 +371,20 @@ function buildBoard(){
       <button class="col-add" onclick="openModal('${col.id}')">＋ إضافة</button>
     `;
 
-    const body=d.querySelector('.col-body');
+    const body=d.querySelector(".col-body");
 
-    body.addEventListener('dragover',e=>{
+    body.addEventListener("dragover",e=>{
       e.preventDefault();
-      d.classList.add('drag-over');
+      d.classList.add("drag-over");
     });
 
-    body.addEventListener('dragleave',()=>d.classList.remove('drag-over'));
+    body.addEventListener("dragleave",()=>d.classList.remove("drag-over"));
 
-    body.addEventListener('drop',()=>{
-      d.classList.remove('drag-over');
+    body.addEventListener("drop",()=>{
+      d.classList.remove("drag-over");
       if(dragging){
-        dragging.colId = col.id;
+        dragging.colId=col.id;
+        saveCardToAzure(dragging); // LIVE UPDATE
         render();
       }
     });
@@ -367,29 +393,65 @@ function buildBoard(){
   });
 }
 
-/* RENDER */
+/* =========================
+   RENDER
+   ========================= */
+
 function render(){
   COLS.forEach(col=>{
-    const body=document.getElementById('body-'+col.id);
-    const badge=document.getElementById('badge-'+col.id);
+    const body=document.getElementById("body-"+col.id);
+    const badge=document.getElementById("badge-"+col.id);
 
-    const cc = cards.filter(c=>c.colId===col.id);
+    const cc=cards.filter(c=>c.colId===col.id);
 
-    body.innerHTML='';
+    body.innerHTML="";
 
     if(!cc.length){
       body.innerHTML='<div class="empty-hint">لا توجد مهام</div>';
-    } else {
+    }else{
       cc.forEach(c=>body.appendChild(mkCard(c)));
     }
 
-    badge.textContent = cc.length;
+    badge.textContent=cc.length;
   });
 
-  updateStats();
+  updateStats?.();
 }
 
-/* INIT ORDER FIX */
+/* =========================
+   ADD / EDIT (YOU MUST HAVE THESE EXISTING)
+   ========================= */
+
+function saveCard(data){
+  if(editing){
+    Object.assign(editing,data);
+    saveCardToAzure(editing);
+  }else{
+    const newCard={id:nextId++,...data};
+    cards.push(newCard);
+    saveCardToAzure(newCard);
+  }
+
+  render();
+}
+
+/* =========================
+   DELETE
+   ========================= */
+
+function ctxDelete(){
+  if(!activeCtx) return;
+
+  cards=cards.filter(c=>c.id!==activeCtx);
+  deleteCardFromAzure(activeCtx);
+
+  render();
+}
+
+/* =========================
+   INIT
+   ========================= */
+
 buildBoard();
 loadFromAzure();
 </script>

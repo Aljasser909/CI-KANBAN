@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>CI KANBAN LIVE</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--card:#1c2333;--border:rgba(255,255,255,.08);--text:#e6edf3;--muted:#8b949e;--accent:#3b82f6;--c0:#64748b;--c1:#f59e0b;--c2:#3b82f6;--c3:#a855f7;--c4:#22c55e}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;min-height:100vh}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:linear-gradient(135deg,#161b22,#1a2236);border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:28px 24px;width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center;gap:20px;animation:pop .25s ease}
+.login-logo{text-align:center}
+.login-sub{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+.login-title-row{display:flex;align-items:center;justify-content:center;gap:14px}
+.login-title{font-size:17px;font-weight:800;letter-spacing:.5px}
+.live-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:20px;padding:2px 9px;font-size:9px;font-weight:700;color:#4ade80;letter-spacing:1px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 1.8s ease-in-out infinite;display:inline-block;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.65)}}
+.step-lbl{font-size:11px;color:var(--muted);font-weight:600;align-self:flex-start;width:100%}
+.team-grid{display:flex;flex-direction:column;gap:9px;width:100%}
+.team-btn{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;font-family:inherit;text-align:right;transition:all .15s;display:flex;align-items:center;gap:10px}
+.team-btn:hover{background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.3)}
+.team-btn-icon{font-size:20px}
+.team-btn-info{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.team-btn-name{font-size:13px;font-weight:700}
+.team-btn-sub{font-size:10px;color:var(--muted);font-weight:400}
+.name-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.name-btn{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:11px 10px;font-size:12px;font-weight:600;color:var(--text);cursor:pointer;font-family:inherit;text-align:center;transition:all .15s}
+.name-btn:hover{background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.3);color:#93c5fd}
+.selected-name-box{font-size:13px;font-weight:700;color:var(--text);background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px 16px;width:100%;text-align:center}
+.pin-area{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;cursor:text}
+.pin-dots{display:flex;gap:14px}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.2);transition:all .15s}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);transform:scale(1.1)}
+.pin-hidden{position:absolute;opacity:0;width:1px;height:1px;top:0;left:0}
+.pin-hint{font-size:11px;color:var(--muted)}
+.pin-err{font-size:12px;color:#f87171;display:none}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.back-btn{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:5px;transition:color .15s;align-self:flex-start}
+.back-btn:hover{color:var(--text)}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 14px;height:56px;background:linear-gradient(135deg,#161b22,#1a2236);border-bottom:1px solid rgba(59,130,246,.18);flex-shrink:0;position:relative}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(59,130,246,.4),transparent)}
+.topbar-left{display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px;border-radius:8px;transition:background .15s}
+.topbar-left:hover{background:rgba(255,255,255,.06)}
+.topbar-team-badge{font-size:10px;font-weight:700;color:var(--muted);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:2px 7px}
+.topbar-username{font-size:11px;color:var(--muted)}
+.topbar-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none}
+.topbar-sub-txt{font-size:9px;font-weight:600;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+.topbar-live{position:absolute;left:16px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;gap:5px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:20px;padding:2px 9px;font-size:9px;font-weight:700;color:#4ade80;letter-spacing:1px}
+.topbar-main{font-size:14px;font-weight:800;letter-spacing:.5px}
+.topbar-live{display:inline-flex;align-items:center;gap:5px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:20px;padding:2px 9px;font-size:9px;font-weight:700;color:#4ade80;letter-spacing:1px}
+
+/* TABS */
+.tabs{display:flex;align-items:center;justify-content:center;gap:4px;padding:10px 16px 0;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{padding:8px 20px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--muted);font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;border-radius:6px 6px 0 0}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--text);border-bottom-color:var(--accent)}
+
+/* VIEWS */
+.view{display:none;flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.view.active{display:block}
+
+/* BOARD */
+.board-section{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 0}
+.board{display:flex;gap:12px;align-items:flex-start;width:max-content;min-width:100%;padding-bottom:4px}
+.col{width:220px;flex-shrink:0;display:flex;flex-direction:column;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:14px;transition:border-color .2s,background .2s;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.col.drag-over{border-color:var(--accent);background:rgba(59,130,246,.05)}
+.col-head{padding:11px 12px 9px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border)}
+.col-bar{width:3px;height:15px;border-radius:3px;flex-shrink:0}
+.col-lbl{font-size:12px;font-weight:700;flex:1}
+.col-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(255,255,255,.07);color:var(--muted);min-width:20px;text-align:center}
+.col-body{padding:7px;display:flex;flex-direction:column;gap:6px;min-height:44px}
+.col-add{margin:0 7px 9px;padding:6px;background:none;border:1px dashed rgba(255,255,255,.08);border-radius:8px;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:4px;transition:all .15s}
+.col-add:hover{border-color:var(--accent);color:#93c5fd;background:rgba(59,130,246,.05)}
+.empty-hint{padding:16px 8px;text-align:center;color:rgba(255,255,255,.1);font-size:11px;pointer-events:none}
+
+/* CARD — FIX: word-wrap */
+.card{background:linear-gradient(135deg,#1c2333,#1a2030);border:1px solid var(--border);border-radius:10px;padding:10px 11px;cursor:grab;user-select:none;transition:box-shadow .18s,transform .18s,border-color .18s;position:relative;overflow:hidden}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.45),0 0 0 1px rgba(59,130,246,.1);border-color:rgba(255,255,255,.14)}
+.card.dragging{opacity:.25;transform:scale(.96);cursor:grabbing}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:7px}
+.card-title{font-size:12px;font-weight:600;line-height:1.6;flex:1;direction:rtl;word-break:break-word;overflow-wrap:break-word;white-space:normal}
+.card-menu{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 2px;border-radius:4px;line-height:1;opacity:0;transition:opacity .12s;flex-shrink:0;font-family:inherit}
+.card:hover .card-menu,.card-menu:focus{opacity:1}
+.card-desc{font-size:11px;color:var(--muted);line-height:1.55;margin-bottom:7px;direction:rtl;word-break:break-word;overflow-wrap:break-word;white-space:normal;width:100%}
+.card-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;padding-top:7px;border-top:1px solid rgba(255,255,255,.04)}
+.pchip{font-size:9px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:4px;white-space:nowrap}
+.pchip.high{background:rgba(239,68,68,.12);color:#f87171}
+.pchip.med{background:rgba(245,158,11,.12);color:#fbbf24}
+.pchip.low{background:rgba(34,197,94,.12);color:#4ade80}
+.cdate{font-size:10px;color:var(--muted)}
+.cdate.late{color:#f87171}
+.assignee-chip{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;direction:rtl;word-break:break-word}
+.assignee-chip::before{content:'👤';font-size:10px;flex-shrink:0}
+
+/* MINI STATS */
+.mini-stats{padding:14px 14px 0;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.mini-donut-box{background:linear-gradient(135deg,var(--surface),#1a2030);border:1px solid var(--border);border-radius:13px;padding:14px;display:flex;align-items:center;gap:14px}
+.mini-donut-wrap{position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mini-donut-center{position:absolute;text-align:center;pointer-events:none}
+.mini-donut-val{font-size:16px;font-weight:800;line-height:1}
+.mini-donut-lbl{font-size:8px;color:var(--muted)}
+.mini-legend{display:flex;flex-direction:column;gap:5px}
+.mini-leg-row{display:flex;align-items:center;gap:6px}
+.mini-leg-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.mini-leg-txt{font-size:10px;color:var(--muted);flex:1}
+.mini-leg-n{font-size:11px;font-weight:700}
+.mini-completion{background:linear-gradient(135deg,var(--surface),#1a2030);border:1px solid var(--border);border-radius:13px;padding:14px;flex:1;min-width:160px}
+.mini-completion-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.mini-pct{font-size:36px;font-weight:800;line-height:1;color:var(--c4);margin-bottom:8px}
+.track{height:5px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden;margin-bottom:6px}
+.fill{height:100%;border-radius:5px;transition:width .6s cubic-bezier(.4,0,.2,1);background:linear-gradient(90deg,#16a34a,#22c55e)}
+.mini-completion-sub{font-size:10px;color:var(--muted)}
+
+/* DASHBOARD */
+.dash-section{padding:18px 14px}
+.dash-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.dash-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
+.dash-line{flex:1;height:1px;background:var(--border)}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:18px}
+@media(max-width:600px){.stats-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:380px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:linear-gradient(135deg,var(--surface),#1a2030);border:1px solid var(--border);border-radius:12px;padding:12px;transition:transform .15s,border-color .15s;cursor:pointer}
+.stat-card:hover{transform:translateY(-2px);border-color:rgba(59,130,246,.3)}
+.stat-card-dot{width:7px;height:7px;border-radius:50%;margin-bottom:8px}
+.stat-card-val{font-size:26px;font-weight:800;line-height:1}
+.stat-card-lbl{font-size:10px;color:var(--muted);margin-top:3px}
+.stat-card-pct{font-size:11px;font-weight:700;margin-top:4px}
+.stat-card-hint{font-size:9px;color:rgba(255,255,255,.18);margin-top:5px}
+.member-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.m-chip{padding:5px 11px;font-size:11px;font-weight:600;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;font-family:inherit}
+.m-chip:hover,.m-chip.active{background:rgba(59,130,246,.1);border-color:var(--accent);color:#93c5fd}
+.member-tasks-list{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.member-task-row{background:linear-gradient(135deg,var(--surface),#1a2030);border:1px solid var(--border);border-radius:10px;padding:11px 13px}
+.member-task-title{font-size:12px;font-weight:600;direction:rtl;margin-bottom:3px;word-break:break-word;overflow-wrap:break-word}
+.member-task-desc{font-size:11px;color:var(--muted);direction:rtl;margin-bottom:6px;word-break:break-word;overflow-wrap:break-word}
+.member-task-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.col-tag{font-size:10px;background:rgba(255,255,255,.05);border-radius:4px;padding:2px 7px}
+.no-tasks{font-size:12px;color:var(--muted);text-align:center;padding:18px;background:rgba(255,255,255,.02);border-radius:10px;border:1px dashed rgba(255,255,255,.06)}
+.chart-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.donut-box{background:linear-gradient(135deg,var(--surface),#1a2030);border:1px solid var(--border);border-radius:13px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:14px;flex:0 0 auto}
+.donut-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+.donut-center{position:absolute;text-align:center;pointer-events:none}
+.donut-val{font-size:26px;font-weight:800;line-height:1}
+.donut-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+.legend{display:flex;flex-direction:column;gap:7px;width:100%}
+.leg-row{display:flex;align-items:center;justify-content:space-between}
+.leg-l{display:flex;align-items:center;gap:7px}
+.leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.leg-name{font-size:11px;color:var(--muted)}
+.leg-r{display:flex;gap:5px;align-items:center}
+.leg-n{font-size:12px;font-weight:700}
+.leg-pct{font-size:10px;color:var(--muted);min-width:26px;text-align:left}
+.completion-box{background:linear-gradient(135deg,var(--surface),#1a2030);border:1px solid var(--border);border-radius:13px;padding:16px;flex:1;min-width:180px}
+.completion-box h3{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+.big-pct{font-size:44px;font-weight:800;line-height:1;color:var(--c4);margin-bottom:10px}
+.dash-track{height:6px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden;margin-bottom:8px}
+.dash-fill{height:100%;border-radius:6px;transition:width .6s cubic-bezier(.4,0,.2,1);background:linear-gradient(90deg,#16a34a,#22c55e)}
+.completion-sub{font-size:11px;color:var(--muted)}
+#dash-pin-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;gap:16px}
+.dash-lock-icon{font-size:38px}
+.dash-lock-title{font-size:15px;font-weight:700}
+.dash-lock-sub{font-size:12px;color:var(--muted)}
+
+/* COL DETAIL */
+#col-detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:550;place-items:center;padding:16px}
+#col-detail-overlay.open{display:grid}
+.col-detail-modal{background:linear-gradient(135deg,#161b22,#1a2236);border:1px solid rgba(255,255,255,.12);border-radius:16px;width:100%;max-width:460px;max-height:82vh;display:flex;flex-direction:column;animation:pop .18s ease}
+.col-detail-head{padding:14px 16px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border);flex-shrink:0}
+.col-detail-bar{width:4px;height:17px;border-radius:3px;flex-shrink:0}
+.col-detail-title{font-size:14px;font-weight:700;flex:1}
+.col-detail-count{font-size:11px;color:var(--muted);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:20px}
+.col-detail-x{background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer;border-radius:5px;padding:2px 6px;font-family:inherit}
+.col-detail-filter{display:flex;flex-wrap:wrap;gap:5px;padding:10px 14px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.04)}
+.d-chip{padding:4px 10px;font-size:10px;font-weight:600;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;font-family:inherit}
+.d-chip:hover,.d-chip.active{background:rgba(59,130,246,.1);border-color:var(--accent);color:#93c5fd}
+.col-detail-body{padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:7px}
+.d-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:9px;padding:11px 12px}
+.d-card-title{font-size:12px;font-weight:600;direction:rtl;margin-bottom:4px;word-break:break-word;overflow-wrap:break-word}
+.d-card-desc{font-size:11px;color:var(--muted);direction:rtl;margin-bottom:7px;word-break:break-word;overflow-wrap:break-word}
+.d-card-foot{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.empty-detail{font-size:12px;color:var(--muted);text-align:center;padding:24px}
+
+.spacer{height:28px}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;place-items:center;padding:16px}
+.overlay.open{display:grid}
+.modal{background:linear-gradient(135deg,#161b22,#1a2236);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:20px;width:100%;max-width:400px;direction:rtl;display:flex;flex-direction:column;gap:12px;animation:pop .18s ease;max-height:90vh;overflow-y:auto}
+@keyframes pop{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:none}}
+.modal-head{display:flex;align-items:center;justify-content:space-between}
+.modal-head h2{font-size:15px;font-weight:700}
+.modal-x{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;border-radius:5px;padding:2px 5px;font-family:inherit}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.3px}
+.field input,.field textarea,.field select{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text);font-size:13px;font-family:inherit;outline:none;direction:rtl;transition:border-color .15s;width:100%;-webkit-appearance:none}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);background:rgba(59,130,246,.05)}
+.field textarea{resize:vertical;min-height:58px}
+.field select option{background:#1c2333}
+.frow{display:flex;gap:9px}
+.frow .field{flex:1}
+.modal-actions{display:flex;gap:7px;padding-top:3px}
+.btn{border:none;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-blue{background:var(--accent);color:#fff}
+.btn-cancel2{background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+
+/* CTX */
+.ctx{display:none;position:fixed;background:var(--card);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:5px;z-index:600;min-width:148px;box-shadow:0 12px 36px rgba(0,0,0,.55);animation:fadeIn .12s ease}
+.ctx.open{display:block}
+@keyframes fadeIn{from{opacity:0;transform:scale(.96)}to{opacity:1}}
+.ctx-item{padding:9px 12px;font-size:13px;color:var(--text);cursor:pointer;border-radius:6px;display:flex;align-items:center;gap:7px;direction:rtl;transition:background .1s}
+.ctx-item:hover{background:rgba(255,255,255,.07)}
+.ctx-item.danger{color:#f87171}
+.ctx-item.danger:hover{background:rgba(239,68,68,.1)}
+.ctx-sep{height:1px;background:var(--border);margin:4px 5px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1c2333;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:9px 18px;font-size:13px;box-shadow:0 8px 28px rgba(0,0,0,.45);z-index:700;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+#az-loading{position:fixed;inset:0;background:rgba(13,17,23,.92);z-index:900;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.az-spinner{width:32px;height:32px;border:3px solid rgba(59,130,246,.15);border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#az-loading p{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<div id="az-loading"><div class="az-spinner"></div><p>جاري التحميل…</p></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-sub">Continuous Improvements</div>
+      <div class="login-title-row">
+        <span class="login-title">KANBAN</span>
+        <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+      </div>
+    </div>
+    <div id="step-0" style="width:100%;display:flex;flex-direction:column;gap:12px">
+      <span class="step-lbl">🏢 اختر الفريق</span>
+      <div class="team-grid" id="team-grid"></div>
+    </div>
+    <div id="step-1" style="width:100%;display:none;flex-direction:column;gap:12px">
+      <button class="back-btn" onclick="backToStep0()">← رجوع</button>
+      <span class="step-lbl" id="step1-lbl">👋 اختر اسمك</span>
+      <div class="name-grid" id="name-grid"></div>
+    </div>
+    <div id="step-2" style="width:100%;display:none;flex-direction:column;align-items:center;gap:14px">
+      <button class="back-btn" onclick="backToStep1()">← رجوع</button>
+      <div class="selected-name-box" id="selected-name-display"></div>
+      <span class="step-lbl" style="text-align:center;align-self:center">🔒 أدخل رمزك</span>
+      <div class="pin-area" onclick="document.getElementById('pin-input').focus()">
+        <div class="pin-dots">
+          <div class="pin-dot" id="ldot-0"></div><div class="pin-dot" id="ldot-1"></div>
+          <div class="pin-dot" id="ldot-2"></div><div class="pin-dot" id="ldot-3"></div>
+        </div>
+        <input type="tel" id="pin-input" maxlength="4" pattern="[0-9]*" autocomplete="off" class="pin-hidden" oninput="onLoginPin(this.value)" inputmode="numeric"/>
+        <span class="pin-hint">اضغط وأدخل الرمز</span>
+        <span class="pin-err" id="login-err">رمز خاطئ، حاول مجدداً</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" style="display:none;flex-direction:column;height:100%">
+  <div class="topbar">
+    <span class="topbar-live"><span class="live-dot"></span>LIVE</span>
+    <div class="topbar-left" onclick="logout()" title="تسجيل خروج">
+      <span class="topbar-team-badge" id="topbar-team"></span>
+      <span class="topbar-username" id="topbar-user"></span>
+    </div>
+    <div class="topbar-center">
+      <span class="topbar-sub-txt">Continuous Improvements</span>
+      <div class="topbar-row">
+        <span class="topbar-main">KANBAN</span>
+      </div>
+    </div>
+    <div style="width:90px"></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" id="tab-board" onclick="switchTab('board',this)">📋 البورد</button>
+    <button class="tab" id="tab-dash" onclick="tryOpenDash(this)">📊 الداشبورد</button>
+  </div>
+  <div class="view active" id="view-board">
+    <div class="board-section"><div class="board" id="board"></div></div>
+    <div class="mini-stats">
+      <div class="mini-donut-box">
+        <div class="mini-donut-wrap">
+          <svg id="mini-donut-svg" width="90" height="90" viewBox="0 0 90 90"></svg>
+          <div class="mini-donut-center"><div class="mini-donut-val" id="mini-d-total">0</div><div class="mini-donut-lbl">مهمة</div></div>
+        </div>
+        <div class="mini-legend" id="mini-legend"></div>
+      </div>
+      <div class="mini-completion">
+        <div class="mini-completion-lbl">نسبة الإنجاز</div>
+        <div class="mini-pct" id="mini-big-pct">0%</div>
+        <div class="track"><div class="fill" id="mini-pct-fill" style="width:0%"></div></div>
+        <div class="mini-completion-sub" id="mini-completion-sub">0 من 0 مكتملة</div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <div class="view" id="view-dash">
+    <div id="dash-pin-gate">
+      <div class="dash-lock-icon">🔐</div>
+      <div class="dash-lock-title">الداشبورد للمدير فقط</div>
+      <div class="dash-lock-sub">أدخل رمز المدير للمتابعة</div>
+      <div class="pin-area" style="margin-top:10px" onclick="document.getElementById('dash-pin-input').focus()">
+        <div class="pin-dots">
+          <div class="pin-dot" id="ddot-0"></div><div class="pin-dot" id="ddot-1"></div>
+          <div class="pin-dot" id="ddot-2"></div><div class="pin-dot" id="ddot-3"></div>
+        </div>
+        <input type="tel" id="dash-pin-input" maxlength="4" pattern="[0-9]*" autocomplete="off" class="pin-hidden" oninput="onDashPin(this.value)" inputmode="numeric"/>
+        <span class="pin-hint">اضغط وأدخل رمز المدير</span>
+        <span class="pin-err" id="dash-err">رمز خاطئ</span>
+      </div>
+    </div>
+    <div id="dash-content" style="display:none">
+      <div class="dash-section">
+        <div class="dash-header"><span class="dash-title">توزيع المهام</span><div class="dash-line"></div></div>
+        <div class="stats-grid" id="stats-grid"></div>
+        <div class="dash-header"><span class="dash-title">مهام حسب الشخص</span><div class="dash-line"></div></div>
+        <div class="member-chips" id="member-chips"></div>
+        <div class="member-tasks-list" id="member-tasks-list"></div>
+        <div class="dash-header"><span class="dash-title">التحليل البصري</span><div class="dash-line"></div></div>
+        <div class="chart-row">
+          <div class="donut-box">
+            <div class="donut-wrap">
+              <svg id="donut-svg" width="140" height="140" viewBox="0 0 140 140"></svg>
+              <div class="donut-center"><div class="donut-val" id="d-total">0</div><div class="donut-lbl">مهمة</div></div>
+            </div>
+            <div class="legend" id="legend"></div>
+          </div>
+          <div class="completion-box">
+            <h3>نسبة الإنجاز</h3>
+            <div class="big-pct" id="big-pct">0%</div>
+            <div class="dash-track"><div class="dash-fill" id="pct-fill" style="width:0%"></div></div>
+            <div class="completion-sub" id="completion-sub">0 من 0 مهمة مكتملة</div>
+          </div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+    </div>
+  </div>
+</div>
+
+<!-- COL DETAIL -->
+<div id="col-detail-overlay">
+  <div class="col-detail-modal">
+    <div class="col-detail-head">
+      <div class="col-detail-bar" id="col-detail-bar"></div>
+      <span class="col-detail-title" id="col-detail-title"></span>
+      <span class="col-detail-count" id="col-detail-count"></span>
+      <button class="col-detail-x" onclick="closeColDetail()">✕</button>
+    </div>
+    <div class="col-detail-filter" id="col-detail-filter"></div>
+    <div class="col-detail-body" id="col-detail-body"></div>
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head"><h2 id="modal-ttl">مهمة جديدة</h2><button class="modal-x" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>العنوان *</label><input id="f-title" type="text" placeholder="اكتب عنوان المهمة…"/></div>
+    <div class="field"><label>الوصف</label><textarea id="f-desc" placeholder="تفاصيل إضافية…"></textarea></div>
+    <div class="frow">
+      <div class="field"><label>العمود</label>
+        <select id="f-col">
+          <option value="backlog">📋 Backlog</option><option value="todo">🎯 To Do</option>
+          <option value="inprog">⚡ In Progress</option><option value="review">👀 Review</option>
+          <option value="done">✅ Done</option>
+        </select>
+      </div>
+      <div class="field"><label>الأولوية</label>
+        <select id="f-priority">
+          <option value="high">🔴 عالية</option><option value="med" selected>🟡 متوسطة</option><option value="low">🟢 منخفضة</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="field"><label>المسؤول</label><select id="f-assignee"></select></div>
+      <div class="field"><label>تاريخ الاستحقاق</label><input id="f-date" type="date"/></div>
+    </div>
+    <div class="modal-actions"><button class="btn btn-blue" onclick="saveCard()">حفظ</button><button class="btn-cancel2" onclick="closeModal()">إلغاء</button></div>
+  </div>
+</div>
+
+<div class="ctx" id="ctx">
+  <div class="ctx-item" onclick="ctxEdit()">✏️ تعديل</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="ctxDelete()">🗑 حذف</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══ AZURE ══ */
+const AZ_ACCOUNT = 'kanbanstore123';
+const AZ_TABLE   = 'kanbanTasks';
+const AZ_SAS     = 'sv=2026-02-06&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2027-06-24T18:23:19Z&st=2026-06-24T10:08:19Z&spr=https&sig=ILmk9veYJDpMB%2BUOxgVEV1yXriy48fj03jY1ndQdUCc%3D';
+const AZ_BASE    = `https://${AZ_ACCOUNT}.table.core.windows.net/${AZ_TABLE}`;
+
+/* ══ TEAMS ══  ← عدّل الأسماء والرموز هنا */
+const TEAMS = [
+  {
+    id:'ci', name:'فريق التحسين', icon:'⚙️',
+    pk:'tasks',          // ← نفس الـ PartitionKey القديم عشان البيانات الموجودة تظهر
+    dashPin:'2025',
+    members:[
+      {name:'عبدالرحمن الجاسر',pin:'1234'},
+      {name:'معاذ الجعيد',pin:'2222'},
+      {name:'احمد العلياني',pin:'3333'},
+      {name:'تميم البكر',pin:'4444'},
+      {name:'فيصل المحسن',pin:'5555'},
+      {name:'عبدالوهاب الشهراني',pin:'6666'},
+    ]
+  },
+  {
+    id:'NCR', name:'فريق عدم المطابقة', icon:'🔧',
+    pk:'tasks_team2',    // ← pool منفصل تماماً في Azure
+    dashPin:'2026',
+    members:[
+      {name:'مراد استبنه',pin:'1111'},
+      {name:'يعقوب قمرالدين',pin:'2222'},
+      {name:'زكية حسنين',pin:'3333'},
+      {name:'سعيد سلكلي',pin:'4444'},
+      {name:'ابراهيم ارحمني',pin:'5555'},
+      {name:'احمد نشقلي',pin:'6666'},
+    ]
+  },
+];
+
+/* ══ COLS ══ */
+const COLS=[
+  {id:'backlog',label:'📋 Backlog',color:'#64748b'},
+  {id:'todo',label:'🎯 To Do',color:'#f59e0b'},
+  {id:'inprog',label:'⚡ In Progress',color:'#3b82f6'},
+  {id:'review',label:'👀 Review',color:'#a855f7'},
+  {id:'done',label:'✅ Done',color:'#22c55e'},
+];
+const PRI_AR={high:'عالية',med:'متوسطة',low:'منخفضة'};
+const MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+
+/* ══ STATE ══ */
+let cards=[],dragging=null,activeCtx=null,editing=null;
+let currentUser=null,currentTeam=null,dashUnlocked=false;
+let activeMemberFilter=null,colDetailMemberFilter=null,colDetailActive=null,selectedMemberIdx=null;
+function genId(){return 'T'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+/* ══ SESSION ══ */
+function initSession(){
+  const su=sessionStorage.getItem('kb_user');
+  const st=sessionStorage.getItem('kb_team');
+  dashUnlocked=sessionStorage.getItem('kb_dash')==='1';
+  if(su&&st){
+    currentTeam=TEAMS.find(t=>t.id===st)||TEAMS[0];
+    currentUser=JSON.parse(su);
+    showApp();
+  } else { showLoginScreen(); }
+}
+function showLoginScreen(){
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('main-app').style.display='none';
+  buildTeamGrid();showStep(0);
+}
+function showApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('main-app').style.display='flex';
+  document.getElementById('topbar-team').textContent=currentTeam.icon+' '+currentTeam.name;
+  document.getElementById('topbar-user').textContent=currentUser.name;
+  buildBoard();azRefresh();
+}
+function logout(){if(!confirm('تسجيل خروج؟'))return;sessionStorage.clear();location.reload();}
+
+/* ══ LOGIN ══ */
+function showStep(n){
+  [0,1,2].forEach(i=>{const el=document.getElementById('step-'+i);if(el)el.style.display=i===n?'flex':'none';});
+}
+function buildTeamGrid(){
+  const g=document.getElementById('team-grid');g.innerHTML='';
+  TEAMS.forEach((t,i)=>{
+    const b=document.createElement('button');b.className='team-btn';
+    b.innerHTML=`<span class="team-btn-icon">${t.icon}</span><div class="team-btn-info"><span class="team-btn-name">${t.name}</span><span class="team-btn-sub">${t.members.length} أعضاء</span></div>`;
+    b.onclick=()=>selectTeam(i);g.appendChild(b);
+  });
+}
+function selectTeam(idx){
+  currentTeam=TEAMS[idx];
+  document.getElementById('step1-lbl').textContent=`👋 اختر اسمك — ${currentTeam.name}`;
+  buildNameGrid();showStep(1);
+}
+function backToStep0(){showStep(0);}
+function buildNameGrid(){
+  const g=document.getElementById('name-grid');g.innerHTML='';
+  currentTeam.members.forEach((m,i)=>{
+    const b=document.createElement('button');b.className='name-btn';b.textContent=m.name;
+    b.onclick=()=>selectMember(i);g.appendChild(b);
+  });
+}
+function selectMember(idx){
+  selectedMemberIdx=idx;
+  document.getElementById('selected-name-display').textContent=currentTeam.members[idx].name;
+  document.getElementById('pin-input').value='';
+  updatePinDots('','l');
+  document.getElementById('login-err').style.display='none';
+  showStep(2);
+  setTimeout(()=>document.getElementById('pin-input').focus(),120);
+}
+function backToStep1(){showStep(1);}
+function onLoginPin(val){updatePinDots(val,'l');if(val.length===4)setTimeout(submitLoginPin,160);}
+function submitLoginPin(){
+  const val=document.getElementById('pin-input').value;
+  const member=currentTeam.members[selectedMemberIdx];
+  if(val===member.pin){
+    currentUser={name:member.name};
+    sessionStorage.setItem('kb_user',JSON.stringify(currentUser));
+    sessionStorage.setItem('kb_team',currentTeam.id);
+    sessionStorage.removeItem('kb_dash'); // reset dash lock per team
+    dashUnlocked=false;
+    document.getElementById('login-screen').style.opacity='0';
+    document.getElementById('login-screen').style.transition='opacity .3s';
+    setTimeout(showApp,300);
+  } else {
+    const err=document.getElementById('login-err');err.style.display='block';
+    err.style.animation='none';setTimeout(()=>err.style.animation='shake .3s ease',10);
+    document.getElementById('pin-input').value='';updatePinDots('','l');
+    setTimeout(()=>document.getElementById('pin-input').focus(),120);
+  }
+}
+function updatePinDots(val,p){for(let i=0;i<4;i++){const d=document.getElementById(p+'dot-'+i);if(d)d.classList.toggle('filled',i<val.length);}}
+
+/* ══ TABS ══ */
+function switchTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  (el||document.getElementById('tab-'+name)).classList.add('active');
+  document.getElementById('view-'+name).classList.add('active');
+}
+function tryOpenDash(el){
+  switchTab('dash',el);
+  if(dashUnlocked){
+    document.getElementById('dash-pin-gate').style.display='none';
+    document.getElementById('dash-content').style.display='block';
+    updateDashStats();renderMemberFilter(null);
+  } else {
+    document.getElementById('dash-pin-gate').style.display='flex';
+    document.getElementById('dash-content').style.display='none';
+    document.getElementById('dash-pin-input').value='';updatePinDots('','d');
+    setTimeout(()=>document.getElementById('dash-pin-input').focus(),150);
+  }
+}
+function onDashPin(val){updatePinDots(val,'d');if(val.length===4)setTimeout(submitDashPin,160);}
+function submitDashPin(){
+  const val=document.getElementById('dash-pin-input').value;
+  if(val===currentTeam.dashPin){
+    dashUnlocked=true;sessionStorage.setItem('kb_dash','1');
+    document.getElementById('dash-pin-gate').style.display='none';
+    document.getElementById('dash-content').style.display='block';
+    updateDashStats();renderMemberFilter(null);
+  } else {
+    const err=document.getElementById('dash-err');err.style.display='block';
+    err.style.animation='none';setTimeout(()=>err.style.animation='shake .3s ease',10);
+    document.getElementById('dash-pin-input').value='';updatePinDots('','d');
+    setTimeout(()=>document.getElementById('dash-pin-input').focus(),120);
+  }
+}
+
+/* ══ AZURE ══ */
+function cardToEntity(c){
+  return {PartitionKey:currentTeam.pk,RowKey:String(c.id),title:c.title||'',desc:c.desc||'',colId:c.colId||'backlog',priority:c.priority||'med',assignee:c.assignee||'',date:c.date||''};
+}
+async function azFetchAll(){
+  const f=encodeURIComponent(`PartitionKey eq '${currentTeam.pk}'`);
+  const res=await fetch(`${AZ_BASE}?$filter=${f}&${AZ_SAS}`,{headers:{'Accept':'application/json;odata=nometadata'}});
+  if(!res.ok)throw new Error(`HTTP ${res.status}`);
+  const data=await res.json();
+  return (data.value||[]).map(e=>({id:e.RowKey,title:e.title||'',desc:e.desc||'',colId:e.colId||'backlog',priority:e.priority||'med',assignee:e.assignee||'',date:e.date||''}));
+}
+async function azInsert(c){
+  const res=await fetch(`${AZ_BASE}?${AZ_SAS}`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json;odata=nometadata'},body:JSON.stringify(cardToEntity(c))});
+  if(!res.ok)throw new Error(`HTTP ${res.status}`);
+}
+/* FIX: استخدم حذف + إضافة بدل PUT لتجنب مشكلة التعديل */
+async function azUpdate(c){
+  try{await azDeleteRaw(c.id);}catch(e){/* تجاهل إذا مو موجود */}
+  await azInsert(c);
+}
+async function azDeleteRaw(id){
+  const res=await fetch(`${AZ_BASE}(PartitionKey='${currentTeam.pk}',RowKey='${id}')?${AZ_SAS}`,{method:'DELETE',headers:{'Accept':'application/json;odata=nometadata','If-Match':'*'}});
+  if(!res.ok)throw new Error(`HTTP ${res.status}`);
+}
+async function azDelete(id){await azDeleteRaw(id);}
+
+function setLoading(on){document.getElementById('az-loading').style.display=on?'flex':'none';}
+async function azRefresh(){
+  setLoading(true);
+  try{
+    cards=await azFetchAll();render();updateMiniStats();
+    if(dashUnlocked){updateDashStats();renderMemberFilter(activeMemberFilter);}
+  }catch(e){console.error('Azure:',e);toast('⚠️ خطأ في الاتصال');}
+  setLoading(false);
+}
+
+/* ══ BOARD ══ */
+function buildBoard(){
+  const board=document.getElementById('board');board.innerHTML='';
+  COLS.forEach(col=>{
+    const d=document.createElement('div');d.className='col';d.id='col-'+col.id;
+    d.innerHTML=`<div class="col-head"><div class="col-bar" style="background:${col.color}"></div><span class="col-lbl">${col.label}</span><span class="col-badge" id="badge-${col.id}">0</span></div><div class="col-body" id="body-${col.id}"></div><button class="col-add" onclick="openModal('${col.id}')">＋ إضافة</button>`;
+    const body=d.querySelector('.col-body');
+    body.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('drag-over')});
+    body.addEventListener('dragleave',()=>d.classList.remove('drag-over'));
+    body.addEventListener('drop',async()=>{
+      d.classList.remove('drag-over');
+      if(dragging){dragging.colId=col.id;render();updateMiniStats();try{await azUpdate(dragging);}catch(e){toast('⚠️ خطأ');}}
+    });
+    board.appendChild(d);
+  });
+}
+function render(){
+  COLS.forEach(col=>{
+    const body=document.getElementById('body-'+col.id);
+    const badge=document.getElementById('badge-'+col.id);
+    const cc=cards.filter(c=>c.colId===col.id);
+    body.innerHTML='';
+    if(!cc.length)body.innerHTML='<div class="empty-hint">لا توجد مهام</div>';
+    else cc.forEach(c=>body.appendChild(mkCard(c)));
+    badge.textContent=cc.length;
+  });
+}
+function mkCard(c){
+  const el=document.createElement('div');el.className='card';el.dataset.id=c.id;el.draggable=true;
+  const today=new Date();today.setHours(0,0,0,0);
+  let dh='';
+  if(c.date){const d=new Date(c.date+'T00:00:00');const late=d<today;dh=`<span class="cdate${late?' late':''}">${late?'⚠ ':''}${d.getDate()} ${MONTHS[d.getMonth()]}</span>`;}
+  el.innerHTML=`<div class="card-top"><div class="card-title">${esc(c.title)}</div><button class="card-menu" onclick="openCtx(event,'${c.id}')">⋯</button></div>${c.desc?`<div class="card-desc">${esc(c.desc)}</div>`:''}${c.assignee?`<div class="assignee-chip">${esc(c.assignee)}</div>`:''}<div class="card-foot"><span class="pchip ${c.priority}">${PRI_AR[c.priority]}</span>${dh}</div>`;
+  el.addEventListener('dragstart',()=>{dragging=c;requestAnimationFrame(()=>el.classList.add('dragging'))});
+  el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragging=null});
+  return el;
+}
+
+/* ══ MINI STATS ══ */
+function updateMiniStats(){
+  const total=cards.length;
+  document.getElementById('mini-d-total').textContent=total;
+  const svg=document.getElementById('mini-donut-svg');
+  const lg=document.getElementById('mini-legend');
+  svg.innerHTML='';lg.innerHTML='';
+  const cx=45,cy=45,R=34,C=2*Math.PI*R;
+  const bg=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  bg.setAttribute('cx',cx);bg.setAttribute('cy',cy);bg.setAttribute('r',R);bg.setAttribute('fill','none');bg.setAttribute('stroke','rgba(255,255,255,.06)');bg.setAttribute('stroke-width','14');svg.appendChild(bg);
+  let offset=0;
+  COLS.forEach(col=>{
+    const n=cards.filter(c=>c.colId===col.id).length;const pct=total?n/total:0;
+    if(pct>0){const arc=document.createElementNS('http://www.w3.org/2000/svg','circle');arc.setAttribute('cx',cx);arc.setAttribute('cy',cy);arc.setAttribute('r',R);arc.setAttribute('fill','none');arc.setAttribute('stroke',col.color);arc.setAttribute('stroke-width','14');arc.setAttribute('stroke-dasharray',`${pct*C} ${C}`);arc.setAttribute('stroke-dashoffset',C-offset);arc.setAttribute('transform',`rotate(-90 ${cx} ${cy})`);svg.appendChild(arc);offset+=pct*C;}
+    const row=document.createElement('div');row.className='mini-leg-row';
+    row.innerHTML=`<div class="mini-leg-dot" style="background:${col.color}"></div><span class="mini-leg-txt">${col.label}</span><span class="mini-leg-n">${n}</span>`;
+    lg.appendChild(row);
+  });
+  const done=cards.filter(c=>c.colId==='done').length;const dp=total?Math.round(done/total*100):0;
+  document.getElementById('mini-big-pct').textContent=dp+'%';
+  document.getElementById('mini-pct-fill').style.width=dp+'%';
+  document.getElementById('mini-completion-sub').textContent=`${done} من ${total} مكتملة`;
+}
+
+/* ══ DASH STATS ══ */
+function updateDashStats(){
+  const total=cards.length;const grid=document.getElementById('stats-grid');grid.innerHTML='';
+  COLS.forEach(col=>{
+    const n=cards.filter(c=>c.colId===col.id).length;const pct=total?Math.round(n/total*100):0;
+    const cell=document.createElement('div');cell.className='stat-card';
+    cell.innerHTML=`<div class="stat-card-dot" style="background:${col.color}"></div><div class="stat-card-val">${n}</div><div class="stat-card-lbl">${col.label}</div><div class="stat-card-pct" style="color:${col.color}">${pct}%</div><div class="stat-card-hint">اضغط للتفاصيل</div>`;
+    cell.onclick=()=>openColDetail(col.id);grid.appendChild(cell);
+  });
+  const svg=document.getElementById('donut-svg');const leg=document.getElementById('legend');
+  svg.innerHTML='';leg.innerHTML='';document.getElementById('d-total').textContent=total;
+  const cx=70,cy=70,R=54,C=2*Math.PI*R;
+  const bg=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  bg.setAttribute('cx',cx);bg.setAttribute('cy',cy);bg.setAttribute('r',R);bg.setAttribute('fill','none');bg.setAttribute('stroke','rgba(255,255,255,.06)');bg.setAttribute('stroke-width','20');svg.appendChild(bg);
+  let offset=0;
+  COLS.forEach(col=>{
+    const n=cards.filter(c=>c.colId===col.id).length;const pct=total?n/total:0;
+    if(pct>0){const arc=document.createElementNS('http://www.w3.org/2000/svg','circle');arc.setAttribute('cx',cx);arc.setAttribute('cy',cy);arc.setAttribute('r',R);arc.setAttribute('fill','none');arc.setAttribute('stroke',col.color);arc.setAttribute('stroke-width','20');arc.setAttribute('stroke-dasharray',`${pct*C} ${C}`);arc.setAttribute('stroke-dashoffset',C-offset);arc.setAttribute('transform',`rotate(-90 ${cx} ${cy})`);svg.appendChild(arc);offset+=pct*C;}
+    const row=document.createElement('div');row.className='leg-row';
+    row.innerHTML=`<div class="leg-l"><div class="leg-dot" style="background:${col.color}"></div><span class="leg-name">${col.label}</span></div><div class="leg-r"><span class="leg-n">${cards.filter(c=>c.colId===col.id).length}</span><span class="leg-pct">${total?Math.round(cards.filter(c=>c.colId===col.id).length/total*100):0}%</span></div>`;
+    leg.appendChild(row);
+  });
+  const done=cards.filter(c=>c.colId==='done').length;const dp=total?Math.round(done/total*100):0;
+  document.getElementById('big-pct').textContent=dp+'%';document.getElementById('pct-fill').style.width=dp+'%';
+  document.getElementById('completion-sub').textContent=`${done} من ${total} مهمة مكتملة`;
+}
+
+/* ══ MEMBER FILTER ══ */
+function renderMemberFilter(selected){
+  activeMemberFilter=selected;
+  const chipsEl=document.getElementById('member-chips');const listEl=document.getElementById('member-tasks-list');
+  chipsEl.innerHTML='';
+  const ac=document.createElement('button');ac.className='m-chip'+(selected===null?' active':'');
+  ac.textContent='الكل';ac.onclick=()=>renderMemberFilter(null);chipsEl.appendChild(ac);
+  currentTeam.members.forEach(m=>{
+    const ch=document.createElement('button');ch.className='m-chip'+(selected===m.name?' active':'');
+    ch.textContent=m.name;ch.onclick=()=>renderMemberFilter(m.name);chipsEl.appendChild(ch);
+  });
+  listEl.innerHTML='';
+  let filtered=selected?cards.filter(c=>c.assignee===selected):cards;
+  if(!filtered.length){listEl.innerHTML=`<div class="no-tasks">${selected?`لا توجد مهام لـ ${selected}`:'لا توجد مهام بعد'}</div>`;return;}
+  const today=new Date();today.setHours(0,0,0,0);
+  filtered.forEach(c=>{
+    const col=COLS.find(x=>x.id===c.colId);let dh='';
+    if(c.date){const d=new Date(c.date+'T00:00:00');const late=d<today;dh=`<span class="cdate${late?' late':''}">${late?'⚠ ':''}${d.getDate()} ${MONTHS[d.getMonth()]}</span>`;}
+    const row=document.createElement('div');row.className='member-task-row';
+    row.innerHTML=`<div class="member-task-title">${esc(c.title)}</div>${c.desc?`<div class="member-task-desc">${esc(c.desc)}</div>`:''}<div class="member-task-meta"><span class="col-tag" style="color:${col?col.color:'var(--muted)'}">${col?col.label:c.colId}</span><span class="pchip ${c.priority}">${PRI_AR[c.priority]}</span>${dh}${!selected&&c.assignee?`<span class="assignee-chip">${esc(c.assignee)}</span>`:''}</div>`;
+    listEl.appendChild(row);
+  });
+}
+
+/* ══ COL DETAIL ══ */
+function openColDetail(colId){
+  colDetailActive=colId;colDetailMemberFilter=null;
+  const col=COLS.find(c=>c.id===colId);
+  document.getElementById('col-detail-bar').style.background=col.color;
+  document.getElementById('col-detail-title').textContent=col.label;
+  renderColDetailFilter();renderColDetail();
+  document.getElementById('col-detail-overlay').classList.add('open');
+}
+function closeColDetail(){document.getElementById('col-detail-overlay').classList.remove('open');}
+function renderColDetailFilter(){
+  const f=document.getElementById('col-detail-filter');f.innerHTML='';
+  const ac=document.createElement('button');ac.className='d-chip'+(colDetailMemberFilter===null?' active':'');
+  ac.textContent='الكل';ac.onclick=()=>{colDetailMemberFilter=null;renderColDetailFilter();renderColDetail();};f.appendChild(ac);
+  currentTeam.members.forEach(m=>{
+    const ch=document.createElement('button');ch.className='d-chip'+(colDetailMemberFilter===m.name?' active':'');
+    ch.textContent=m.name;ch.onclick=()=>{colDetailMemberFilter=m.name;renderColDetailFilter();renderColDetail();};f.appendChild(ch);
+  });
+}
+function renderColDetail(){
+  let filtered=cards.filter(c=>c.colId===colDetailActive);
+  if(colDetailMemberFilter)filtered=filtered.filter(c=>c.assignee===colDetailMemberFilter);
+  document.getElementById('col-detail-count').textContent=filtered.length+' مهمة';
+  const body=document.getElementById('col-detail-body');body.innerHTML='';
+  if(!filtered.length){body.innerHTML='<div class="empty-detail">لا توجد مهام</div>';return;}
+  const today=new Date();today.setHours(0,0,0,0);
+  filtered.forEach(c=>{
+    let dh='';
+    if(c.date){const d=new Date(c.date+'T00:00:00');const late=d<today;dh=`<span class="cdate${late?' late':''}">${late?'⚠ ':''}${d.getDate()} ${MONTHS[d.getMonth()]}</span>`;}
+    const card=document.createElement('div');card.className='d-card';
+    card.innerHTML=`<div class="d-card-title">${esc(c.title)}</div>${c.desc?`<div class="d-card-desc">${esc(c.desc)}</div>`:''}<div class="d-card-foot"><span class="pchip ${c.priority}">${PRI_AR[c.priority]}</span>${c.assignee?`<span class="assignee-chip">${esc(c.assignee)}</span>`:''}${dh}</div>`;
+    body.appendChild(card);
+  });
+}
+
+/* ══ MODAL ══ */
+function buildAssigneeSelect(current){
+  const sel=document.getElementById('f-assignee');sel.innerHTML='<option value="">غير محدد</option>';
+  currentTeam.members.forEach(m=>{const opt=document.createElement('option');opt.value=m.name;opt.textContent=m.name;sel.appendChild(opt);});
+  sel.value=current||(currentUser?.name||'');
+}
+function openModal(col,cid){
+  editing=cid!=null?cards.find(c=>c.id===cid):null;
+  document.getElementById('modal-ttl').textContent=editing?'تعديل المهمة':'مهمة جديدة';
+  document.getElementById('f-title').value=editing?.title??'';
+  document.getElementById('f-desc').value=editing?.desc??'';
+  document.getElementById('f-col').value=editing?.colId??(col||'backlog');
+  document.getElementById('f-priority').value=editing?.priority??'med';
+  document.getElementById('f-date').value=editing?.date??'';
+  buildAssigneeSelect(editing?.assignee??null);
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('f-title').focus(),80);
+}
+function closeModal(){document.getElementById('overlay').classList.remove('open');editing=null;}
+async function saveCard(){
+  const title=document.getElementById('f-title').value.trim();
+  if(!title){document.getElementById('f-title').focus();return;}
+  const data={title,desc:document.getElementById('f-desc').value.trim(),colId:document.getElementById('f-col').value,priority:document.getElementById('f-priority').value,assignee:document.getElementById('f-assignee').value,date:document.getElementById('f-date').value};
+  if(editing){
+    Object.assign(editing,data);render();updateMiniStats();closeModal();toast('تم التعديل ✓');
+    try{await azUpdate(editing);}catch(e){console.error(e);toast('⚠️ خطأ في التعديل');}
+  } else {
+    const card={id:genId(),...data};cards.push(card);render();updateMiniStats();closeModal();toast('تمت الإضافة ✓');
+    try{await azInsert(card);}catch(e){console.error(e);toast('⚠️ خطأ في الحفظ');}
+  }
+}
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
+document.getElementById('f-title').addEventListener('keydown',e=>{if(e.key==='Enter')saveCard();});
+
+/* ══ CTX ══ */
+function openCtx(e,cid){
+  e.stopPropagation();activeCtx=cid;
+  const m=document.getElementById('ctx');m.classList.add('open');
+  m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';
+  requestAnimationFrame(()=>{
+    if(e.clientX+m.offsetWidth>window.innerWidth)m.style.left=(e.clientX-m.offsetWidth)+'px';
+    if(e.clientY+m.offsetHeight>window.innerHeight)m.style.top=(e.clientY-m.offsetHeight)+'px';
+  });
+}
+function closeCtx(){document.getElementById('ctx').classList.remove('open');}
+document.addEventListener('click',closeCtx);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCtx();closeColDetail();}});
+function ctxEdit(){closeCtx();openModal(null,activeCtx);}
+async function ctxDelete(){
+  closeCtx();const id=activeCtx;
+  cards=cards.filter(c=>c.id!==id);render();updateMiniStats();toast('تم الحذف');
+  try{await azDelete(id);}catch(e){toast('⚠️ خطأ في الحذف');}
+}
+
+/* ══ UTILS ══ */
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ══ INIT ══ */
+initSession();
+setInterval(()=>{if(currentUser)azRefresh();},10000);
+</script>
+</body>
+</html>
